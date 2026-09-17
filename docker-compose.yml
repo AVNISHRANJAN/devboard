@@ -1,0 +1,99 @@
+services:
+
+  # =========================
+  # PostgreSQL
+  # =========================
+  postgres:
+    image: postgres:17-alpine
+    container_name: devboard-postgres
+
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-devboard}
+      POSTGRES_USER: ${POSTGRES_USER:-devboard}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devboard_password}
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init/postgres:/docker-entrypoint-initdb.d:ro
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-devboard} -d ${POSTGRES_DB:-devboard}"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+    networks:
+      - devboard-network
+
+
+  # =========================
+  # Go Backend
+  # =========================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+
+    container_name: devboard-backend
+
+    restart: unless-stopped
+
+    ports:
+      - "8080:8080"
+
+    environment:
+      POSTGRES_URL: postgres://devboard:devboard_password@postgres:5432/devboard?sslmode=disable
+      PORT: 8080
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    networks:
+      - devboard-network
+
+
+  # =========================
+  # React Frontend + Nginx
+  # =========================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+
+    container_name: devboard-frontend
+
+    restart: unless-stopped
+
+    ports:
+      - "3000:80"
+
+    depends_on:
+      - backend
+
+    networks:
+      - devboard-network
+
+
+# =========================
+# Volumes
+# =========================
+volumes:
+  postgres_data:
+
+
+# =========================
+# Network
+# =========================
+networks:
+  devboard-network:
+    driver: bridge
