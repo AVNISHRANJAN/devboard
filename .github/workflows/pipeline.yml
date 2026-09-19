@@ -40,6 +40,8 @@ jobs:
   app-validation:
     if: inputs.rollback != true
     uses: ./.github/workflows/ci-app-validation.yml
+    with:
+      min_backend_coverage: ${{ vars.MIN_BACKEND_COVERAGE || '80' }}
     secrets: inherit
 
   container-release:
