@@ -46,17 +46,12 @@ type Project struct {
 }
 
 func main() {
-	// PostgreSQL connection string.
-	//
-	// Docker Compose provides POSTGRES_URL:
-	// postgres://devboard:devboard_password@postgres:5432/devboard?sslmode=disable
-	//
-	// localhost fallback is useful when running the backend directly
-	// outside Docker.
-	dsn := env(
-		"POSTGRES_URL",
-		"postgres://devboard:devboard@localhost:5432/devboard?sslmode=disable",
-	)
+	// The connection string must be injected by the environment/secret manager;
+	// credentials are intentionally never compiled into the binary.
+	dsn := os.Getenv("POSTGRES_URL")
+	if dsn == "" {
+		log.Fatal("[backend] POSTGRES_URL must be set")
+	}
 
 	var err error
 

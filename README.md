@@ -103,12 +103,13 @@ It defines:
 - `POSTGRES_USER` - PostgreSQL username; local demo default is `devboard`.
 - `POSTGRES_PASSWORD` - PostgreSQL password; local demo default is `devboard`.
 - `POSTGRES_DB` - database name; local demo default is `devboard`.
+- `POSTGRES_URL` - backend connection string; use a secret manager outside local development.
 - `BACKEND_PORT` - backend container port, default `8080`.
 - `POSTGRES_HOST_PORT` - host PostgreSQL port, default `5432`.
 - `BACKEND_HOST_PORT` - host backend port for the Docker setup, default `8081`.
 - `FRONTEND_HOST_PORT` - host frontend port for the Docker setup, default `8080`.
 
-The Go backend reads `POSTGRES_URL` and `PORT`. It does not load `.env` files itself. For a manual local run, export these variables in the backend terminal, or rely on the backend defaults:
+The Go backend reads `POSTGRES_URL` and `PORT`. It does not load `.env` files itself. For a manual local run, export these variables in the backend terminal:
 
 ```bash
 export POSTGRES_URL='postgres://devboard:devboard@localhost:5432/devboard?sslmode=disable'
@@ -212,7 +213,14 @@ make reset   # Remove Docker Compose volumes and restart
 make smoke   # Check the backend, frontend, and seeded task endpoint
 ```
 
-The current checkout does not contain `docker-compose.yml` or the backend/frontend Dockerfiles referenced by these Docker-oriented targets, so `make up`, `make down`, `make logs`, `make ps`, `make reset`, and `make smoke` cannot run until those existing files are restored. The manual local workflow above does not use these targets.
+The Compose stack and Dockerfiles are available in this checkout. Compose requires
+the variables in `.env`; use `cp .env.example .env` for a local demo only. Never
+copy those demo values into staging or production.
+
+The enterprise CI/CD design is documented in
+[`docs/devsecops-pipeline.md`](docs/devsecops-pipeline.md). The thin pipeline
+orchestrator is [`.github/workflows/pipeline.yml`](.github/workflows/pipeline.yml)
+and its CI/CD stages are split into separate reusable workflow files alongside it.
 
 ## API
 

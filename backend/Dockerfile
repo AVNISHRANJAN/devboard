@@ -19,21 +19,27 @@ COPY . .
 
 # Build Go application
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-    go build -o devboard-backend .
+    go build -trimpath -ldflags="-s -w" -o devboard-backend .
 
 
 # =========================
 # Stage 2: Production
 # =========================
-FROM alpine:latest
+FROM alpine:3.22
 
 WORKDIR /app
 
 # Install CA certificates for HTTPS/API calls
-RUN apk add --no-cache ca-certificates
+RUN apk add --no-cache ca-certificates wget \
+    && addgroup -S app \
+    && adduser -S -G app -u 10001 app
 
 # Copy compiled binary
 COPY --from=builder /app/devboard-backend .
+
+RUN chown app:app /app/devboard-backend
+
+USER 10001:10001
 
 # Backend port
 EXPOSE 8080

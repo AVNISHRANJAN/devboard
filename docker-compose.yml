@@ -5,17 +5,16 @@ services:
   # =========================
   postgres:
     image: postgres:17-alpine
-    container_name: devboard-postgres
 
     restart: unless-stopped
 
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-devboard}
-      POSTGRES_USER: ${POSTGRES_USER:-devboard}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devboard_password}
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB must be set}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER must be set}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
 
     ports:
-      - "5432:5432"
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5432}:5432"
 
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -25,7 +24,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "pg_isready -U ${POSTGRES_USER:-devboard} -d ${POSTGRES_DB:-devboard}"
+          "pg_isready -U ${POSTGRES_USER:?POSTGRES_USER must be set} -d ${POSTGRES_DB:?POSTGRES_DB must be set}"
         ]
       interval: 5s
       timeout: 5s
@@ -39,24 +38,34 @@ services:
   # Go Backend
   # =========================
   backend:
+    image: ${BACKEND_IMAGE:-devboard-backend:local}
     build:
       context: ./backend
       dockerfile: Dockerfile
 
-    container_name: devboard-backend
-
     restart: unless-stopped
 
     ports:
-      - "8080:8080"
+      - "127.0.0.1:${BACKEND_HOST_PORT:-8081}:8080"
 
     environment:
-      POSTGRES_URL: postgres://devboard:devboard_password@postgres:5432/devboard?sslmode=disable
-      PORT: 8080
+      POSTGRES_URL: ${POSTGRES_URL:?POSTGRES_URL must be set}
+      PORT: ${BACKEND_PORT:-8080}
 
     depends_on:
       postgres:
         condition: service_healthy
+
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "--quiet", "http://127.0.0.1:8080/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+    read_only: true
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
 
     networks:
       - devboard-network
@@ -66,19 +75,33 @@ services:
   # React Frontend + Nginx
   # =========================
   frontend:
+    image: ${FRONTEND_IMAGE:-devboard-frontend:local}
     build:
       context: ./frontend
       dockerfile: Dockerfile
 
-    container_name: devboard-frontend
-
     restart: unless-stopped
-
     ports:
-      - "3000:80"
+      - "127.0.0.1:${FRONTEND_HOST_PORT:-3000}:8080"
 
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "--quiet", "http://127.0.0.1:8080/"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+      - /tmp
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
 
     networks:
       - devboard-network
