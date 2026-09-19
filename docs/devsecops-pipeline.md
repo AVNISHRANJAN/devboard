@@ -51,12 +51,13 @@ credential.
 
 - Secret detection: any confirmed secret fails, including Git history. Revoke
   and rotate a leaked credential before rerunning.
-- SAST, image, and IaC: CRITICAL fails; HIGH fails for production-bound
+- SAST and image scanning: CRITICAL fails; HIGH fails for production-bound
   changes; MEDIUM is tracked with an owner; LOW is informational.
 - Dependency/license scanning: HIGH/CRITICAL vulnerabilities fail; exceptions
   require an expiry, owner, rationale, and compensating control.
 - Frontend and backend unit tests remain parallel. Set the coverage floor to
-  80% in the workflow; publish JUnit/coverage artifacts with the release.
+  80% by default; it can be configured with the repository variable
+  `MIN_BACKEND_COVERAGE`. Publish JUnit/coverage artifacts with the release.
 
 The current application has no authentication or migration framework. Before
 a real production rollout, add authentication/authorization and versioned
@@ -91,7 +92,9 @@ restarts, certificate expiry, and newly disclosed image/dependency
 vulnerabilities. Retain the Git SHA, workflow run, release tag, image digest,
 SBOM, approval, migration version, and rollback event for every release.
 
-If the target moves to Kubernetes, add Pod Security Standards, non-root
+This repository currently has no Terraform, CloudFormation, or Kubernetes
+infrastructure to scan. If infrastructure code is added, re-enable a dedicated
+IaC scan using Checkov/Trivy before provisioning. If the target moves to Kubernetes, add Pod Security Standards, non-root
 security contexts, resource limits, probes, NetworkPolicy, least-privilege
 RBAC, admission signature verification, and Trivy/Checkov scans. This repo
 currently has no Kubernetes manifests to scan or deploy.
