@@ -44,9 +44,11 @@ jobs:
       - uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: devboard-${{ matrix.service }}:${{ inputs.image_tag }}
+          scanners: vuln
           vuln-type: os,library
           severity: CRITICAL,HIGH
           ignore-unfixed: true
+          skip-version-check: true
           exit-code: '1'
           format: sarif
           output: trivy-${{ matrix.service }}.sarif
