@@ -68,7 +68,7 @@ func main() {
 			break
 		}
 
-		log.Printf("[backend] waiting for postgres (%d)…", i+1)
+		log.Printf("[backend] waiting for postgres (%d): %v", i+1, err)
 		time.Sleep(2 * time.Second)
 	}
 
