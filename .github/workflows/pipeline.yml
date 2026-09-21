@@ -49,7 +49,7 @@ jobs:
     needs: [policy-security, app-validation]
     uses: ./.github/workflows/container-release.yml
     with:
-      image_namespace: ${{ vars.DOCKERHUB_USERNAME }}
+      image_namespace: ${{ vars.DOCKERHUB_USERNAME || 'avnish2' }}
       image_tag: ${{ github.sha }}
     secrets: inherit
 
