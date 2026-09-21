@@ -33,7 +33,7 @@ jobs:
         with:
           dockerfile: ${{ matrix.service }}/Dockerfile
           config: .hadolint.yaml
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v7
         with:
           context: ./${{ matrix.service }}
           file: ./${{ matrix.service }}/Dockerfile
@@ -83,7 +83,7 @@ jobs:
         run: |
           echo "frontend=docker.io/${{ inputs.image_namespace }}/devboard-frontend:${{ inputs.image_tag }}" >> "$GITHUB_OUTPUT"
           echo "backend=docker.io/${{ inputs.image_namespace }}/devboard-backend:${{ inputs.image_tag }}" >> "$GITHUB_OUTPUT"
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v7
         id: published_frontend
         with:
           context: ./frontend
@@ -91,7 +91,7 @@ jobs:
           tags: ${{ steps.images.outputs.frontend }}
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,mode=max,scope=frontend
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v7
         id: published_backend
         with:
           context: ./backend
