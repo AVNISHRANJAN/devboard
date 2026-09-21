@@ -32,6 +32,15 @@ jobs:
           curl --fail "$STAGING_URL/api/projects"
         env:
           STAGING_URL: ${{ vars.STAGING_URL }}
+      - name: Collect staging container diagnostics
+        if: failure()
+        run: |
+          docker compose \
+            --env-file /etc/devboard/staging.env \
+            -f docker-compose.production.yml ps
+          docker compose \
+            --env-file /etc/devboard/staging.env \
+            -f docker-compose.production.yml logs --no-color --tail=100 frontend backend || true
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
