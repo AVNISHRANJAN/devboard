@@ -48,7 +48,6 @@ jobs:
           vuln-type: os,library
           severity: CRITICAL,HIGH
           ignore-unfixed: true
-          skip-version-check: true
           exit-code: '1'
           format: sarif
           output: trivy-${{ matrix.service }}.sarif
