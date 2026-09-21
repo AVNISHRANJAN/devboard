@@ -11,7 +11,25 @@ COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.yml}"
 STATE_DIR="${STATE_DIR:-/var/lib/devboard}"
 PREVIOUS_ENV_FILE="${STATE_DIR}/${ENVIRONMENT}.previous.env"
 
-test -r "$ENV_FILE"
+if [[ ! -r "$ENV_FILE" ]]; then
+  echo "ERROR: environment file is missing or unreadable: $ENV_FILE" >&2
+  echo "Create it on the deployment host or set ENV_FILE explicitly." >&2
+  exit 1
+fi
+
+if [[ ! -r "$COMPOSE_FILE" ]]; then
+  echo "ERROR: Compose file is missing or unreadable: $COMPOSE_FILE" >&2
+  exit 1
+fi
+
+command -v docker >/dev/null 2>&1 || {
+  echo "ERROR: docker is not installed or not available to this runner user." >&2
+  exit 1
+}
+docker compose version >/dev/null 2>&1 || {
+  echo "ERROR: Docker Compose v2 is not available to this runner user." >&2
+  exit 1
+}
 mkdir -p "$STATE_DIR"
 
 if [[ "${ROLLBACK:-false}" == "true" ]]; then
@@ -23,6 +41,8 @@ else
   printf '\nFRONTEND_IMAGE=%s\nBACKEND_IMAGE=%s\nRELEASE_VERSION=%s\n' \
     "$FRONTEND_IMAGE" "$BACKEND_IMAGE" "$RELEASE_VERSION" >> "$ENV_FILE"
 fi
+
+docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" config --quiet
 
 rollback() {
   echo "Deployment failed; restoring previous known-good release"
