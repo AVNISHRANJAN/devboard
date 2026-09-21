@@ -41,7 +41,19 @@ jobs:
           tags: devboard-${{ matrix.service }}:${{ inputs.image_tag }}
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
-      - uses: aquasecurity/trivy-action@v0.36.0
+      - name: Generate Trivy SARIF report
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: devboard-${{ matrix.service }}:${{ inputs.image_tag }}
+          scanners: vuln
+          vuln-type: os,library
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: '0'
+          format: sarif
+          output: trivy-${{ matrix.service }}.sarif
+      - name: Enforce Trivy HIGH/CRITICAL gate
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: devboard-${{ matrix.service }}:${{ inputs.image_tag }}
           scanners: vuln
@@ -49,8 +61,8 @@ jobs:
           severity: CRITICAL,HIGH
           ignore-unfixed: true
           exit-code: '1'
-          format: sarif
-          output: trivy-${{ matrix.service }}.sarif
+          format: table
+          skip-setup-trivy: true
       - uses: anchore/sbom-action@v0
         with:
           image: devboard-${{ matrix.service }}:${{ inputs.image_tag }}
