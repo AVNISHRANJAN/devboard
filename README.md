@@ -76,7 +76,7 @@ devboard/
 Install the following:
 
 - Git
-- Go 1.22 or later
+- Go 1.26 or later
 - Node.js `^20.19.0` or `>=22.12.0` (required by the installed Vite version)
 - npm
 - PostgreSQL
