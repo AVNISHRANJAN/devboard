@@ -49,6 +49,8 @@ jobs:
   backend:
     name: Backend quality, SCA, build, and tests
     runs-on: ubuntu-latest
+    env:
+      GOTOOLCHAIN: local
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
