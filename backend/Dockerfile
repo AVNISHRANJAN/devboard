@@ -30,7 +30,7 @@ FROM alpine:3.22
 WORKDIR /app
 
 # Install CA certificates for HTTPS/API calls
-RUN apk add --no-cache ca-certificates wget \
+RUN apk add --no-cache ca-certificates \
     && addgroup -S app \
     && adduser -S -G app -u 10001 app
 
