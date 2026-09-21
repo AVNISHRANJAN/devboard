@@ -10,7 +10,7 @@ on:
 
 permissions:
   contents: read
-
+#fixed the permissions to only what is needed for this workflow
 env:
   NODE_VERSION: '22'
 
