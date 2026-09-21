@@ -28,9 +28,7 @@ FROM nginxinc/nginx-unprivileged:1.29-alpine-slim
 USER root
 RUN apk upgrade --no-cache
 
-# The unprivileged image intentionally runs as a non-root user, so its
-# default files are not removable during the image build. Copying the SPA
-# output over index.html is sufficient; the remaining default 50x page is
+
 # harmless and is replaced by the custom error handling at runtime if used.
 COPY --from=build /app/dist/ /usr/share/nginx/html/
 
