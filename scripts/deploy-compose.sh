@@ -45,9 +45,18 @@ fi
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" config --quiet
 
 rollback() {
+  status=$?
+  trap - ERR
   echo "Deployment failed; restoring previous known-good release"
-  cp "$PREVIOUS_ENV_FILE" "$ENV_FILE"
-  docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --no-build
+  if [[ -r "$PREVIOUS_ENV_FILE" ]]; then
+    cp "$PREVIOUS_ENV_FILE" "$ENV_FILE"
+    docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --no-build || true
+  fi
+  echo "Container status after deployment failure:"
+  docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" ps || true
+  echo "Recent backend logs (credentials are not printed by the application):"
+  docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" logs --no-color --tail=100 backend || true
+  exit "$status"
 }
 trap rollback ERR
 
