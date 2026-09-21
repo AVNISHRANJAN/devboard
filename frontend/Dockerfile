@@ -21,7 +21,12 @@ RUN npm run build
 # =========================
 # Stage 2: Production
 # =========================
-FROM nginxinc/nginx-unprivileged:1.27-alpine
+FROM nginxinc/nginx-unprivileged:1.29-alpine-slim
+
+# Refresh base-image packages so security fixes released after the image
+# build are included in the immutable application image.
+USER root
+RUN apk upgrade --no-cache
 
 # The unprivileged image intentionally runs as a non-root user, so its
 # default files are not removable during the image build. Copying the SPA
@@ -34,4 +39,5 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 8080
 
+USER 101
 CMD ["nginx", "-g", "daemon off;"]
