@@ -31,6 +31,7 @@ WORKDIR /app
 
 # Install CA certificates for HTTPS/API calls
 RUN apk add --no-cache ca-certificates \
+    && apk upgrade --no-cache \
     && addgroup -S app \
     && adduser -S -G app -u 10001 app
 
