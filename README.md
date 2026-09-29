@@ -271,3 +271,93 @@ The current checkout has Make targets that invoke Docker Compose, but the refere
 5. Start the backend on `http://localhost:8080`.
 6. Start the frontend with `npm run dev`.
 7. Open `http://localhost:5173`.
+
+---
+
+## AWS EKS Deployment
+
+DevBoard includes production-ready Kubernetes manifests and Terraform infrastructure for deployment on AWS EKS.
+
+### Architecture
+
+```
+Internet → Route 53 → ALB (HTTPS) → Kubernetes Ingress
+                                          ↓
+                                   Frontend (Nginx)
+                                     ↓ /api/*
+                                   Backend (Go/Gin)
+                                          ↓
+                                   Amazon RDS PostgreSQL
+```
+
+### Quick EKS Deployment
+
+```bash
+# 1. Provision AWS infrastructure
+cd terraform/
+terraform init
+terraform apply -var-file=environments/production.tfvars
+
+# 2. Configure kubectl
+aws eks update-kubeconfig --region <AWS_REGION> --name devboard-production
+
+# 3. Build and push images to ECR
+export ECR_REGISTRY=<AWS_ACCOUNT_ID>.dkr.ecr.<AWS_REGION>.amazonaws.com
+export TAG=$(git rev-parse --short HEAD)
+docker build -t ${ECR_REGISTRY}/devboard-backend:${TAG} ./backend/
+docker build -t ${ECR_REGISTRY}/devboard-frontend:${TAG} ./frontend/
+docker push ${ECR_REGISTRY}/devboard-backend:${TAG}
+docker push ${ECR_REGISTRY}/devboard-frontend:${TAG}
+
+# 4. Deploy to Kubernetes
+kubectl apply -k k8s/
+
+# 5. Verify
+kubectl get pods -n devboard-prod
+kubectl get ingress -n devboard-prod
+```
+
+### Documentation
+
+| Document | Description |
+|----------|-------------|
+| [Step-by-Step EKS Runbook](docs/STEP_BY_STEP_EKS_DEPLOYMENT.md) | Exact commands and directory-by-directory execution steps |
+| [EKS Deployment Guide](docs/EKS_DEPLOYMENT.md) | Complete operations and troubleshooting guide |
+| [EKS Architecture](docs/EKS_ARCHITECTURE.md) | Architecture diagrams and decisions |
+| [Production Checklist](docs/PRODUCTION_CHECKLIST.md) | Pre-production readiness checklist |
+| [DevSecOps Pipeline](docs/devsecops-pipeline.md) | CI/CD pipeline design |
+
+### Key Components
+
+| Component | Technology | Purpose |
+|-----------|-----------|---------|
+| Container Registry | Amazon ECR | Docker image storage with vulnerability scanning |
+| Orchestration | Amazon EKS | Managed Kubernetes cluster |
+| Database | Amazon RDS PostgreSQL | Managed database with automated backups |
+| Load Balancer | AWS ALB | HTTPS termination, path-based routing |
+| Node Autoscaling | Karpenter | Fast node provisioning (~60s) |
+| Pod Autoscaling | Kubernetes HPA | CPU/memory-based replica scaling |
+| IaC | Terraform | Reproducible infrastructure |
+| CI/CD | GitHub Actions | Automated build, scan, deploy |
+
+### Environment Variables (EKS)
+
+| Variable | Source | Description |
+|----------|--------|-------------|
+| `POSTGRES_URL` | K8s Secret | RDS connection string |
+| `PORT` | K8s ConfigMap | Backend listen port (8080) |
+| `GIN_MODE` | K8s ConfigMap | Gin framework mode (release) |
+| `APP_ENV` | K8s ConfigMap | Environment identifier |
+
+### Scaling
+
+- **HPA** scales backend pods (2→8) and frontend pods (2→6) based on CPU utilization
+- **Karpenter** provisions new EC2 nodes when pods are pending
+- **PodDisruptionBudgets** ensure at least 1 pod per service during disruptions
+
+### Rollback
+
+```bash
+kubectl rollout undo deployment/backend -n devboard-prod
+kubectl rollout undo deployment/frontend -n devboard-prod
+```
