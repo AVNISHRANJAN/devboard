@@ -19,7 +19,8 @@ module "db" {
 
   multi_az = false # Set to true for High Availability in production
 
-  db_subnet_group_name   = module.vpc.database_subnet_group_name != "" ? module.vpc.database_subnet_group_name : aws_db_subnet_group.rds_subnet_group.name
+  create_db_subnet_group = false
+  db_subnet_group_name   = aws_db_subnet_group.rds_subnet_group.name
   vpc_security_group_ids = [aws_security_group.rds.id]
 
   maintenance_window = "Mon:00:00-Mon:03:00"

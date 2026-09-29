@@ -5,6 +5,5 @@ metadata:
   namespace: devboard-prod
 data:
   APP_ENV: production
-  PORT: "8080"
   GIN_MODE: release
   LOG_LEVEL: info

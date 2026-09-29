@@ -1,7 +1,7 @@
 # =========================
 # Stage 1: Build
 # =========================
-FROM golang:1.26.8-alpine AS builder
+FROM golang:1.26.8-alpine@sha256:51a7c389a5ddaf82f527191a1e9bff9928655130a44e4975dd1d7e0acf59f1ae AS builder
 
 WORKDIR /app
 
@@ -25,7 +25,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
 # =========================
 # Stage 2: Production
 # =========================
-FROM alpine:3.22
+FROM alpine:3.22@sha256:5291449c3df73caf6ed85e649dec1b9e818b39a5d8c871e97afc13e9cd5e8fa8
 
 WORKDIR /app
 

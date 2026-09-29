@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -79,18 +80,48 @@ func main() {
 	log.Println("[backend] connected to postgres")
 
 	// =========================
-	// Gin Router
+	// Gin Router & Server
 	// =========================
 
+	r := setupRouter()
+
+	port := env("PORT", "8080")
+
+	log.Printf("[backend] listening on :%s", port)
+
+	if err := r.Run(":" + port); err != nil {
+		log.Fatalf("[backend] FATAL: %v", err)
+	}
+}
+
+var validStatuses = map[string]bool{
+	"todo":        true,
+	"in_progress": true,
+	"blocked":     true,
+	"done":        true,
+}
+
+var validPriorities = map[string]bool{
+	"low":    true,
+	"medium": true,
+	"high":   true,
+}
+
+func setupRouter() *gin.Engine {
 	r := gin.Default()
 
-	// =========================
-	// CORS
-	// =========================
-
 	r.Use(cors.New(cors.Config{
-		AllowOrigins: []string{
-			"http://localhost:3000",
+		AllowOriginFunc: func(origin string) bool {
+			if origin == "http://localhost" || origin == "http://127.0.0.1" {
+				return true
+			}
+			if strings.HasPrefix(origin, "http://localhost:") || strings.HasPrefix(origin, "http://127.0.0.1:") {
+				return true
+			}
+			if custom := os.Getenv("CORS_ORIGIN"); custom != "" && origin == custom {
+				return true
+			}
+			return false
 		},
 		AllowMethods: []string{
 			"GET",
@@ -109,10 +140,6 @@ func main() {
 		AllowCredentials: true,
 	}))
 
-	// =========================
-	// Health Check
-	// =========================
-
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"status":  "ok",
@@ -120,38 +147,16 @@ func main() {
 		})
 	})
 
-	// =========================
-	// Project Routes
-	// =========================
-
 	r.GET("/projects", listProjects)
 	r.POST("/projects", createProject)
-
-	// =========================
-	// Task Routes
-	// =========================
 
 	r.GET("/tasks", listTasks)
 	r.POST("/tasks", createTask)
 	r.PATCH("/tasks/:id", updateTask)
 
-	// =========================
-	// Search
-	// =========================
-
 	r.GET("/search", searchTasks)
 
-	// =========================
-	// Start Server
-	// =========================
-
-	port := env("PORT", "8080")
-
-	log.Printf("[backend] listening on :%s", port)
-
-	if err := r.Run(":" + port); err != nil {
-		log.Fatalf("[backend] FATAL: %v", err)
-	}
+	return r
 }
 
 // ============================================================
@@ -262,7 +267,7 @@ func createProject(c *gin.Context) {
 func listTasks(c *gin.Context) {
 	projectID, err := strconv.Atoi(c.Query("project_id"))
 
-	if err != nil {
+	if err != nil || projectID <= 0 {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "project_id is required",
 		})
@@ -306,7 +311,7 @@ func createTask(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&body); err != nil ||
 		body.Title == "" ||
-		body.ProjectID == 0 {
+		body.ProjectID <= 0 {
 
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "title and project_id are required",
@@ -317,10 +322,20 @@ func createTask(c *gin.Context) {
 
 	if body.Status == "" {
 		body.Status = "todo"
+	} else if !validStatuses[body.Status] {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid status",
+		})
+		return
 	}
 
 	if body.Priority == "" {
 		body.Priority = "medium"
+	} else if !validPriorities[body.Priority] {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid priority",
+		})
+		return
 	}
 
 	row := db.QueryRow(
@@ -352,7 +367,7 @@ func createTask(c *gin.Context) {
 func updateTask(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 
-	if err != nil {
+	if err != nil || id <= 0 {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "invalid id",
 		})
@@ -384,6 +399,26 @@ func updateTask(c *gin.Context) {
 	for k, v := range patch {
 		if !allowed[k] {
 			continue
+		}
+
+		if k == "status" {
+			s, ok := v.(string)
+			if !ok || !validStatuses[s] {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": "invalid status",
+				})
+				return
+			}
+		}
+
+		if k == "priority" {
+			p, ok := v.(string)
+			if !ok || !validPriorities[p] {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": "invalid priority",
+				})
+				return
+			}
 		}
 
 		sets = append(
@@ -445,7 +480,7 @@ func searchTasks(c *gin.Context) {
 		c.Query("project_id"),
 	)
 
-	if err != nil {
+	if err != nil || projectID <= 0 {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "project_id is required",
 		})

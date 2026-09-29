@@ -96,7 +96,7 @@ jobs:
 
       # Security scan
       - name: Trivy vulnerability scan
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ steps.ecr-login.outputs.registry }}/devboard-backend:${{ steps.meta.outputs.version }}
           format: table
@@ -145,7 +145,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
 
       - name: Trivy vulnerability scan
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ steps.ecr-login.outputs.registry }}/devboard-frontend:${{ steps.meta.outputs.version }}
           format: table
